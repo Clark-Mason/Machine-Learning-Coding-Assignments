@@ -72,6 +72,7 @@ class SimpleLogisiticRegression():
 
 
     def gradient_ascent(self, w, X, y, lr):
+        # slide 14 bottom
 
         """
         Perform one step of gradient ascent to update current model weights. 
