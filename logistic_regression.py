@@ -160,7 +160,7 @@ if __name__ == '__main__':
     #INSERT CODE HERE
 
     # Code to store as pickle file
-    netid = ''
+    netid = 'AXE210038'
     file_pi = open('{}_model_1.obj',format(netid), 'wb')  #Use your NETID
     pickle.dump(lr, file_pi)
 
