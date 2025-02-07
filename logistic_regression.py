@@ -56,7 +56,7 @@ class SimpleLogisiticRegression():
         :return: loss   
         """
         # INSERT YOUR CODE HERE
-        loss = -np.sum(y* log(self.sigmoid(np.dot(X,self.w))) + (1-y)*log(1- self.sigmoid(np.dot(X,self.w))))
+        loss = -np.sum(y* np.log(self.sigmoid(np.dot(X,self.w))) + (1-y)*np.log(1- self.sigmoid(np.dot(X,self.w))))
 
         return loss
 
