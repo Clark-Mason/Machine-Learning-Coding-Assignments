@@ -56,7 +56,8 @@ class SimpleLogisiticRegression():
         :return: loss   
         """
         # INSERT YOUR CODE HERE
-        loss = -np.sum(y* np.log(self.sigmoid(np.dot(X,self.w))) + (1-y)*np.log(1- self.sigmoid(np.dot(X,self.w))))
+        pred_y = self.predict_example(self.w, X)
+        loss = -np.sum(y * np.log(pred_y) + (1 - y) * np.log(1 - pred_y))
 
         return loss
 
@@ -72,6 +73,7 @@ class SimpleLogisiticRegression():
         """
         # INSERT YOUR CODE HERE
         sigmoid = 1/(1+np.exp(-val))
+        return sigmoid
         raise Exception('Function not yet implemented!')
 
 
@@ -87,6 +89,14 @@ class SimpleLogisiticRegression():
         Update the model weights
         """
         # INSERT YOUR CODE HERE
+        for i in range(X.shape[0]):
+            x_i = X[i]  
+            y_i = y[i]  
+            y_pred = self.sigmoid(np.dot(x_i, w))  
+            gradient = (y_i - y_pred) * x_i  
+            w += lr * gradient  
+        return w
+        
         raise Exception('Function not yet implemented!')
 
 
@@ -108,10 +118,12 @@ class SimpleLogisiticRegression():
         
         if(recompute):
             #Reinitialize the model weights
+            self.w = self.initialize_weights(X.shape[1])
             pass
 
         for _ in range(iters):
             # INSERT YOUR CODE HERE
+            self.w = self.gradient_ascent(self.w, X, y, lr)
             pass
 
 
@@ -123,11 +135,15 @@ class SimpleLogisiticRegression():
         :return: predicted label for x
         """
          # INSERT YOUR CODE HERE
+        mayb = self.sigmoid(np.dot(x,w))
+        if (mayb >= 0.5):
+            return 1
+        return 0
         raise Exception('Function not yet implemented!')
 
 
 
-    def compute_error(y_true, y_pred):
+    def compute_error(self, y_true, y_pred):
         """
         Computes the average error between the true labels (y_true) and the predicted labels (y_pred)
         :param y_true: true label
@@ -135,6 +151,7 @@ class SimpleLogisiticRegression():
         :return: error rate = (1/n) * sum(y_true!=y_pred)
         """
         # INSERT YOUR CODE HERE
+        return np.mean(y_true != y_pred)
         raise Exception('Function not yet implemented!')
 
 
@@ -158,7 +175,12 @@ if __name__ == '__main__':
     for iter in [10, 100,1000,10000]:
         for a in [0.01,0.1, 0.33]:
             #INSERT CODE HERE
-            pass
+            lr.fit(Xtrn, ytrn, a, iter)
+            ytrn_pred = [lr.predict_example(lr.w, x) for x in Xtrn]
+            ytst_pred = [lr.predict_example(lr.w, x) for x in Xtst]
+            train_error = lr.compute_error(ytrn, ytrn_pred)
+            test_error = lr.compute_error(ytst, ytst_pred)
+            print(f"Iterations: {iter}, Learning Rate: {a}, Train Error: {train_error}, Test Error: {test_error}")
 
     #Part 2) Retrain Logistic Regression on the best parameters and store the model as a pickle file
     #INSERT CODE HERE
