@@ -56,6 +56,9 @@ class SimpleLogisiticRegression():
         :return: loss   
         """
         # INSERT YOUR CODE HERE
+        loss = -np.sum(y* log(self.sigmoid(np.dot(X,self.w))) + (1-y)*log(1- self.sigmoid(np.dot(X,self.w))))
+
+        return loss
 
         raise Exception('Function not yet implemented!')
 
@@ -68,6 +71,7 @@ class SimpleLogisiticRegression():
         :return: sigmoid(Input value)
         """
         # INSERT YOUR CODE HERE
+        sigmoid = 1/(1+np.exp(-val))
         raise Exception('Function not yet implemented!')
 
 
