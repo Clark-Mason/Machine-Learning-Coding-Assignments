@@ -208,8 +208,16 @@ if __name__ == '__main__':
 
     #Part 3) Compare your model's performance to scikit-learn's LR model's default parameters 
     #INSERT CODE HERE
-    class sklearn.linear_model.LogisticRegression(solver='liblinear')
-    
+    sklearn = LogisticRegression(solver='liblinear')
+    sklearn.fit(Xtrn, ytrn)
+    ytrn_pred = sklearn.predict(Xtrn)
+    ytst_pred = sklearn.predict(Xtst)
+    train_error = sklearn.compute_error(ytrn, ytrn_pred)
+    test_error = sklearn.compute_error(ytst, ytst_pred)
+    print(f"Train Error: {train_error}, Test Error: {test_error}")
+
+
+
 
     #Part 4) Plot curves on train and test loss for different learning rates. Using recompute=False might help
     for a in [0.01,0.1, 0.33]:
