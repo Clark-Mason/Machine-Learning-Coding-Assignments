@@ -202,7 +202,7 @@ if __name__ == '__main__':
 
     # Code to store as pickle file
     netid = 'AXE210038'
-    file_pi = open('{}_model_1.obj',format(netid), 'wb')  #Use your NETID
+    file_pi = open('{}_model_1.obj'.format(netid), 'wb')  #Use your NETID
     pickle.dump(lr, file_pi)
 
 
@@ -212,8 +212,8 @@ if __name__ == '__main__':
     sklearn.fit(Xtrn, ytrn)
     ytrn_pred = sklearn.predict(Xtrn)
     ytst_pred = sklearn.predict(Xtst)
-    train_error = sklearn.compute_error(ytrn, ytrn_pred)
-    test_error = sklearn.compute_error(ytst, ytst_pred)
+    train_error = lr.compute_error(ytrn, ytrn_pred)
+    test_error = lr.compute_error(ytst, ytst_pred)
     print(f"Train Error: {train_error}, Test Error: {test_error}")
 
 
