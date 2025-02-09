@@ -172,6 +172,10 @@ if __name__ == '__main__':
     lr =  SimpleLogisiticRegression()
     
     #Part 1) Compute Train and Test Errors for different number of iterations and learning rates
+    best_learning_rate = None
+    best_iterations = None
+    best_testing_error = None
+
     for iter in [10, 100,1000,10000]:
         for a in [0.01,0.1, 0.33]:
             #INSERT CODE HERE
@@ -182,8 +186,19 @@ if __name__ == '__main__':
             test_error = lr.compute_error(ytst, ytst_pred)
             print(f"Iterations: {iter}, Learning Rate: {a}, Train Error: {train_error}, Test Error: {test_error}")
 
+            if best_testing_error is None or test_error < best_testing_error:
+                best_testing_error = test_error
+                best_learning_rate = a
+                best_iterations = iter
+
+
     #Part 2) Retrain Logistic Regression on the best parameters and store the model as a pickle file
     #INSERT CODE HERE
+
+    lr.fit(Xtrn, ytrn, best_learning_rate, best_iterations)
+
+    
+
 
     # Code to store as pickle file
     netid = 'AXE210038'
@@ -193,6 +208,8 @@ if __name__ == '__main__':
 
     #Part 3) Compare your model's performance to scikit-learn's LR model's default parameters 
     #INSERT CODE HERE
+    class sklearn.linear_model.LogisticRegression(solver='liblinear')
+    
 
     #Part 4) Plot curves on train and test loss for different learning rates. Using recompute=False might help
     for a in [0.01,0.1, 0.33]:
