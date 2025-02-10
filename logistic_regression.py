@@ -40,7 +40,6 @@ class SimpleLogisiticRegression():
     def __init__(self):
         self.w = []
         pass
-
         
     def initialize_weights(self, num_features):
         #DO NOT MODIFY THIS FUNCTION
@@ -56,13 +55,13 @@ class SimpleLogisiticRegression():
         :return: loss   
         """
         # INSERT YOUR CODE HERE
-        pred_y = self.predict_example(self.w, X)
-        loss = -np.sum(y * np.log(pred_y) + (1 - y) * np.log(1 - pred_y))
+        X = np.insert(X, 0, 1, axis=1)
+        prob = self.sigmoid(np.dot(X, self.w))
+        loss = -np.sum(y * np.log(prob) + (1 - y) * np.log(1 - prob)) / X.shape[0]
 
         return loss
 
         raise Exception('Function not yet implemented!')
-
     
     def sigmoid(self, val):
 
@@ -76,7 +75,6 @@ class SimpleLogisiticRegression():
         return sigmoid
         raise Exception('Function not yet implemented!')
 
-
     def gradient_ascent(self, w, X, y, lr):
         # slide 14 bottom
 
@@ -89,17 +87,9 @@ class SimpleLogisiticRegression():
         Update the model weights
         """
         # INSERT YOUR CODE HERE
-        for i in range(X.shape[0]):
-            x_i = X[i]  
-            y_i = y[i]  
-            y_pred = self.sigmoid(np.dot(x_i, w))  
-            gradient = (y_i - y_pred) * x_i  
-            w += lr * gradient  
-        return w
-        
-        raise Exception('Function not yet implemented!')
-
-
+        y_pred = self.sigmoid(np.dot(X, w))  # Compute predictions for all samples
+        gradient = np.dot(X.T, (y - y_pred)) / X.shape[0]  # Compute batch gradient
+        self.w += lr * gradient  # Update weights using learning rate
 
     def fit(self,X, y, lr=0.1, iters=100, recompute=True):
         """
@@ -115,7 +105,7 @@ class SimpleLogisiticRegression():
 
         """
         # INSERT YOUR CODE HERE
-        
+        X = np.insert(X, 0, 1, axis=1)
         if(recompute):
             #Reinitialize the model weights
             self.w = self.initialize_weights(X.shape[1])
@@ -123,9 +113,8 @@ class SimpleLogisiticRegression():
 
         for _ in range(iters):
             # INSERT YOUR CODE HERE
-            self.w = self.gradient_ascent(self.w, X, y, lr)
+            self.gradient_ascent(self.w, X, y, lr)
             pass
-
 
     def predict_example(self, w, x):
         """
@@ -135,13 +124,12 @@ class SimpleLogisiticRegression():
         :return: predicted label for x
         """
          # INSERT YOUR CODE HERE
+        x = np.insert(x, 0, 1)
         mayb = self.sigmoid(np.dot(x,w))
         if (mayb >= 0.5):
             return 1
         return 0
         raise Exception('Function not yet implemented!')
-
-
 
     def compute_error(self, y_true, y_pred):
         """
@@ -151,11 +139,8 @@ class SimpleLogisiticRegression():
         :return: error rate = (1/n) * sum(y_true!=y_pred)
         """
         # INSERT YOUR CODE HERE
-        return np.mean(y_true != y_pred)
+        return np.sum(y_true != y_pred) / len(y_pred)
         raise Exception('Function not yet implemented!')
-
-
-
 
 if __name__ == '__main__':
 
@@ -208,23 +193,37 @@ if __name__ == '__main__':
 
     #Part 3) Compare your model's performance to scikit-learn's LR model's default parameters 
     #INSERT CODE HERE
-    sklearn = LogisticRegression(solver='liblinear')
+    sklearn = LogisticRegression()
     sklearn.fit(Xtrn, ytrn)
     ytrn_pred = sklearn.predict(Xtrn)
     ytst_pred = sklearn.predict(Xtst)
     train_error = lr.compute_error(ytrn, ytrn_pred)
     test_error = lr.compute_error(ytst, ytst_pred)
-    print(f"Train Error: {train_error}, Test Error: {test_error}")
+    print(f"SCIKIT Train Error: {train_error}, Test Error: {test_error}")
 
 
 
 
     #Part 4) Plot curves on train and test loss for different learning rates. Using recompute=False might help
-    for a in [0.01,0.1, 0.33]:
+    plt.figure(figsize=(10, 5))
+    for a in [0.01, 0.1, 0.33]:
+        train_losses = []
+        test_losses = []
         lr.fit(Xtrn, ytrn, lr=a, iters=1)
-        #INSERT CODE HERE
         for i in range(10):
-            lr.fit(Xtrn, ytrn, lr=a, iters=100,recompute=False)
-            #INSERT CODE HERE
+            lr.fit(Xtrn, ytrn, lr=a, iters=100, recompute=False)
+            train_loss = lr.compute_loss(Xtrn, ytrn)
+            test_loss = lr.compute_loss(Xtst, ytst)
+            train_losses.append(train_loss)
+            test_losses.append(test_loss)
+        
+        plt.plot(range(1, 11), train_losses, label=f'Train Loss (lr={a})')
+        plt.plot(range(1, 11), test_losses, label=f'Test Loss (lr={a})', linestyle='dashed')
+    
+    plt.xlabel('Iterations (x100)')
+    plt.ylabel('Loss')
+    plt.title('Train and Test Loss Curves for Different Learning Rates')
+    plt.legend()
+    plt.show()
 
 
