@@ -40,6 +40,11 @@ def partition(x):
     """
 
     # INSERT YOUR CODE HERE
+    unique_num_features = np.unique(x)  # Number of unique features
+    partitions = {v: np.where(x == v)[0] for v in unique_num_features}  # Dictionary to store partitions for each feature value pair
+    return partitions
+
+
     raise Exception('Function not yet implemented!')
 
 
