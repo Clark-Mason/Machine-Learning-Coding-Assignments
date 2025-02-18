@@ -56,6 +56,9 @@ def entropy(y):
     """
 
     # INSERT YOUR CODE HERE
+    unique_values, counts = np.unique(y, return_counts=True)
+    probabilities = counts / len(y)
+    return -np.sum(probabilities * np.log2(probabilities))
     raise Exception('Function not yet implemented!')
 
 
@@ -69,6 +72,15 @@ def mutual_information(x, y):
     """
 
     # INSERT YOUR CODE HERE
+    entropy_y = entropy(y)
+    partitions = partition(x)
+    conditional_entropy = 0.0
+
+    for value, indices in partitions.items():
+        y_partition = y[indices]
+        conditional_entropy += (len(y_partition) / len(y)) * entropy(y_partition)
+
+    return entropy_y - conditional_entropy
     raise Exception('Function not yet implemented!')
 
 
@@ -114,6 +126,43 @@ def id3(x, y, attribute_value_pairs=None, depth=0, max_depth=5):
     """
 
     # INSERT YOUR CODE HERE. NOTE: THIS IS A RECURSIVE FUNCTION.
+    if attribute_value_pairs is None:
+        attribute_value_pairs = []
+        for i in range(x.shape[1]):
+            unique_values = np.unique(x[:, i])
+            for value in unique_values:
+                attribute_value_pairs.append((i, value))
+
+    unique_labels = np.unique(y)
+    if len(unique_labels) == 1:
+        return unique_labels[0]
+    if len(attribute_value_pairs) == 0 or depth == max_depth:
+        return np.bincount(y).argmax()
+
+    max_info_gain = -1
+    best_pair = None
+    for pair in attribute_value_pairs:
+        info_gain = mutual_information(x[:, pair[0]], y)
+        if info_gain > max_info_gain:
+            max_info_gain = info_gain
+            best_pair = pair
+
+    if max_info_gain == 0:
+        return np.bincount(y).argmax()
+
+    partitions = partition(x[:, best_pair[0]])
+    remaining_pairs = [pair for pair in attribute_value_pairs if pair != best_pair]
+
+    tree = {}
+    for value, indices in partitions.items():
+        x_subset = x[indices]
+        y_subset = y[indices]
+        if len(y_subset) == 0:
+            tree[(best_pair[0], best_pair[1], value == best_pair[1])] = np.bincount(y).argmax()
+        else:
+            tree[(best_pair[0], best_pair[1], value == best_pair[1])] = id3(x_subset, y_subset, remaining_pairs, depth + 1, max_depth)
+
+    return tree
     raise Exception('Function not yet implemented!')
 
 
@@ -126,6 +175,14 @@ def predict_example(x, tree):
     """
 
     # INSERT YOUR CODE HERE. NOTE: THIS IS A RECURSIVE FUNCTION.
+    for key, subtree in tree.items():
+        attribute_index, attribute_value, is_equal = key
+        if (x[attribute_index] == attribute_value) == is_equal:
+            if isinstance(subtree, dict):
+                return predict_example(x, subtree)
+            else:
+                return subtree
+    return None
     raise Exception('Function not yet implemented!')
 
 
@@ -137,6 +194,7 @@ def compute_error(y_true, y_pred):
     """
 
     # INSERT YOUR CODE HERE
+    return np.mean(y_true != y_pred)
     raise Exception('Function not yet implemented!')
 
 
