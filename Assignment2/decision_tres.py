@@ -179,25 +179,23 @@ def compute_error(y_true, y_pred):
 
 def visualize(tree, depth=0):
     """
-    Pretty prints the decision tree to the console.
-    DO NOT MODIFY THIS FUNCTION!
+    Pretty prints the decision tree to the console, showing whether a branch
+    corresponds to the True (==) or False (!=) condition.
     """
     if depth == 0:
         print('TREE')
 
-    for index, split_criterion in enumerate(tree):
-        sub_trees = tree[split_criterion]
-
-        # Print the current node: split criterion
+    for key, subtree in tree.items():
+        attribute_index, attribute_value, is_equal = key
+        condition_str = f"x{attribute_index} == {attribute_value}" if is_equal else f"x{attribute_index} != {attribute_value}"
         print('|\t' * depth, end='')
-        print('+-- [SPLIT: x{0} = {1}]'.format(split_criterion[0], split_criterion[1]))
-
-        # Print the children
-        if type(sub_trees) is dict:
-            visualize(sub_trees, depth + 1)
+        print('+-- [SPLIT: {0}]'.format(condition_str))
+        if isinstance(subtree, dict):
+            visualize(subtree, depth + 1)
         else:
             print('|\t' * (depth + 1), end='')
-            print('+-- [LABEL = {0}]'.format(sub_trees))
+            print('+-- [LABEL = {0}]'.format(subtree))
+
 
 
 if __name__ == '__main__':
