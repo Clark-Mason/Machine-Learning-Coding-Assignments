@@ -1,160 +1,112 @@
-1. Candidate Evaluation
-What We Want to Do
-For each candidate (an attribute–value pair), the intended question is:
+Here’s a concise summary of all the functions in the `decision_tree.py` file, their purposes, and how they contribute to the decision tree construction, formatted as a `README.md` file:
 
-"Is feature i equal to value v?"
+---
 
-This is a binary test that splits the data into two groups:
+# Decision Tree Implementation (ID3 Algorithm)
 
-True branch: All examples where the feature equals the candidate value.
-False branch: All other examples.
-When evaluating how “good” this candidate is, we need to compute its information gain. Information gain is defined as:
+This Python script implements the ID3 algorithm for building a decision tree. Below is a summary of the functions and their roles in constructing the decision tree.
 
-IG
-=
-𝐻
-(
-𝑦
-)
-−
-[
-𝑝
-(
-True
-)
- 
-𝐻
-(
-𝑦
-∣
-True
-)
-+
-𝑝
-(
-False
-)
- 
-𝐻
-(
-𝑦
-∣
-False
-)
-]
-IG=H(y)−[p(True)H(y∣True)+p(False)H(y∣False)]
-To do this correctly, we need a binary feature vector. That is, for each example, we convert the attribute into:
+---
 
-True if 
-𝑥
-[
-𝑖
-]
-=
-=
-𝑣
-x[i]==v
-False otherwise.
-What Went Wrong in the Incorrect Version
-In the first implementation, the code computed the mutual information as follows:
+## Functions
 
-python
-Copy
-for pair in attribute_value_pairs:
-    info_gain = mutual_information(x[:, pair[0]], y)
-Here, the entire column x[:, pair[0]] is used directly—without converting it into a binary feature. This is problematic because:
+### 1. **`partition(x)`**
+- **Purpose**: Partitions a column vector `x` into subsets based on its unique values.
+- **Contribution**: Used to split the dataset into subsets for evaluating potential splits during tree construction.
+- **Output**: A dictionary where keys are unique values in `x`, and values are indices of rows where `x` equals the key.
 
-Multiple Unique Values:
-The attribute might have more than two unique values. So instead of evaluating the split as “is it equal to v?”, it considers the distribution over all its values. This means the computed mutual information doesn’t reflect the binary question we intend.
+---
 
-Inconsistent Comparisons:
-Every candidate is supposed to measure the gain of a binary split. By using the full attribute column, the calculation might inadvertently combine effects from multiple splits (one for each unique value) instead of isolating the effect of a single candidate value.
+### 2. **`entropy(y)`**
+- **Purpose**: Computes the entropy of a vector `y`, which measures the impurity or uncertainty in the labels.
+- **Contribution**: Helps determine the purity of a dataset. Lower entropy indicates a more homogeneous dataset, which is desirable for splitting.
+- **Formula**:
+  \[
+  H(y) = -\sum_{i=1}^{k} p(y=v_i) \cdot \log_2(p(y=v_i))
+  \]
 
-Correct Approach
-The second implementation fixes this by converting the candidate to a binary feature:
+---
 
-python
-Copy
-for pair in attribute_value_pairs:
-    binary_feature = (x[:, pair[0]] == pair[1])
-    info_gain = mutual_information(binary_feature, y)
-This way, the mutual information is computed for a column that only takes on two values (True and False), which exactly represents the question “is feature i equal to v?”
+### 3. **`mutual_information(x, y)`**
+- **Purpose**: Computes the mutual information (information gain) between a binary feature `x` and the labels `y`.
+- **Contribution**: Used as the splitting criterion to select the best attribute-value pair for splitting the dataset.
+- **Formula**:
+  \[
+  I(x, y) = H(y) - H(y | x)
+  \]
+  where \( H(y | x) \) is the conditional entropy of `y` given `x`.
 
-2. Data Partitioning
-What We Want to Do
-After selecting the best candidate (say, (i, v)), we need to split the data into two subsets:
+---
 
-Subset 1 (True branch): 
-𝑥
-[
-𝑖
-]
-=
-=
-𝑣
-x[i]==v
-Subset 2 (False branch): 
-𝑥
-[
-𝑖
-]
-≠
-𝑣
-x[i]
-
-=v
-This split must be unambiguous and yield exactly two branches for the binary tree.
+### 4. **`id3(x, y, attribute_value_pairs=None, depth=0, max_depth=5)`**
+- **Purpose**: Implements the ID3 algorithm to recursively build a decision tree.
+- **Contribution**: Constructs the tree by:
+  1. Checking termination conditions (pure labels, no attributes left, or maximum depth reached).
+  2. Selecting the best attribute-value pair using mutual information.
+  3. Partitioning the data and recursively building subtrees.
+- **Output**: A decision tree represented as a nested dictionary.
 
-What Went Wrong in the Incorrect Version
-The incorrect implementation does the following:
+---
 
-python
-Copy
-partitions = partition(x[:, best_pair[0]])
-for value, indices in partitions.items():
-    # ... use value == best_pair[1] to decide branch ...
-    tree[(best_pair[0], best_pair[1], value == best_pair[1])] = ...
-Problems with this approach:
+### 5. **`predict_example(x, tree)`**
+- **Purpose**: Predicts the label for a single example `x` by traversing the decision tree.
+- **Contribution**: Used to evaluate the performance of the decision tree by predicting labels for test data.
+- **How It Works**: Recursively traverses the tree, checking conditions at each node until a leaf node (predicted label) is reached.
 
-Iterating Over All Unique Values:
-The code loops over every unique value in the attribute column.
+---
 
-If the attribute has more than two unique values, many of those values will be not equal to best_pair[1].
-The expression value == best_pair[1] evaluates to False for all those, leading to multiple iterations for the False branch.
-Ambiguous Branch Keys:
-Because multiple unique values will yield False, you may inadvertently create duplicate keys in the tree or overwrite branches. Essentially, you’re not clearly separating the data into a unique True branch and a unique False branch.
+### 6. **`compute_error(y_true, y_pred)`**
+- **Purpose**: Computes the average error between the true labels (`y_true`) and the predicted labels (`y_pred`).
+- **Contribution**: Evaluates the accuracy of the decision tree.
+- **Formula**:
+  \[
+  \text{Error} = \frac{1}{n} \sum_{i=1}^{n} (y_{\text{true}}^{(i)} \neq y_{\text{pred}}^{(i)})
+  \]
 
-Correct Approach
-The correct method explicitly creates a binary test and partitions the data into two clear subsets:
+---
 
-python
-Copy
-binary_test = (x[:, best_pair[0]] == best_pair[1])
+### 7. **`visualize(tree, depth=0)`**
+- **Purpose**: Pretty-prints the decision tree to the console, showing splits and leaf nodes.
+- **Contribution**: Helps visualize and debug the tree structure.
+- **How It Works**: Recursively traverses the tree and prints the conditions and labels at each level.
 
-# True branch: where the condition holds
-x_true = x[binary_test]
-y_true = y[binary_test]
-tree[(best_pair[0], best_pair[1], True)] = id3(x_true, y_true, remaining_pairs, depth + 1, max_depth)
+---
 
-# False branch: where the condition does not hold
-x_false = x[~binary_test]
-y_false = y[~binary_test]
-tree[(best_pair[0], best_pair[1], False)] = id3(x_false, y_false, remaining_pairs, depth + 1, max_depth)
-This approach:
+## Workflow
+1. **Data Preparation**: Load the dataset into feature matrix `x` and label vector `y`.
+2. **Tree Construction**: Call `id3` to build the decision tree.
+3. **Visualization**: Use `visualize` to print the tree structure.
+4. **Prediction**: Use `predict_example` to predict labels for test data.
+5. **Evaluation**: Use `compute_error` to calculate the error rate.
 
-Ensures Exactly Two Branches:
-One branch for True (where the condition holds) and one for False (where it doesn’t).
+---
 
-Avoids Duplication:
-There’s no looping over all unique values, so there’s no risk of merging or duplicating branches.
+## Example
+```python
+# Load data
+x = np.array([[0, 0], [0, 1], [1, 0], [1, 1]])
+y = np.array([0, 1, 1, 0])
 
-Summary of Why These Differences Matter
-Mutual Information Computation:
-If you compute mutual information over the full attribute column (with many unique values) instead of a binary column, the measure doesn’t represent the effectiveness of the binary split. The information gain might be inflated or deflated incorrectly, leading to poor candidate selection.
+# Build tree
+decision_tree = id3(x, y, max_depth=2)
 
-Data Partitioning:
-Partitioning by iterating over all unique values and using value == best_pair[1] can cause:
+# Visualize tree
+visualize(decision_tree)
 
-Multiple iterations for the False branch: Every unique value that isn’t equal to the candidate value produces a False key.
-Overwriting or ambiguous branches: Since all those different values lead to the same branch key (False), you might merge different subsets incorrectly.
-By ensuring that candidate evaluation uses a binary feature and that data partitioning explicitly splits into two subsets, you obtain a decision tree that correctly models the binary question “is feature i equal to v?” and thus computes meaningful information gains and correct splits at every node.
+# Predict and evaluate
+y_pred = [predict_example(x_i, decision_tree) for x_i in x]
+error = compute_error(y, y_pred)
+print(f'Error: {error * 100:.2f}%')
+```
+
+---
+
+## Key Concepts
+- **Entropy**: Measures dataset impurity.
+- **Mutual Information**: Evaluates the quality of a split.
+- **Recursive Splitting**: The ID3 algorithm recursively splits the dataset based on the best attribute-value pair.
+- **Termination Conditions**: Stop splitting if labels are pure, no attributes are left, or maximum depth is reached.
+
+---
+
+This implementation is a classic example of the ID3 algorithm, focusing on information gain as the splitting criterion. It avoids using external machine learning libraries, making it a great learning tool for understanding decision trees.
