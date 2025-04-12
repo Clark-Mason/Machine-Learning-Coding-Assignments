@@ -42,6 +42,9 @@ def partition(x):
     """
 
     # INSERT YOUR CODE HERE
+    unique_num_features = np.unique(x)  # Number of unique features
+    partitions = {v: np.where(x == v)[0] for v in unique_num_features}  # Dictionary to store partitions for each feature value pair
+    return partitions
     raise Exception('Function not yet implemented!')
 
 
@@ -54,6 +57,10 @@ def entropy(y, weights=None):
     """
 
     # INSERT YOUR CODE HERE
+    unique_values, counts = np.unique(y, return_counts=True)
+    probabilities = counts / len(y)
+    return -np.sum(probabilities * np.log2(probabilities))
+
     raise Exception('Function not yet implemented!')
 
 
@@ -70,6 +77,15 @@ def mutual_information(x, y, weights=None):
     """
 
     # INSERT YOUR CODE HERE
+    entropy_y = entropy(y)
+    partitions = partition(x)
+    conditional_entropy = 0.0
+
+    for value, indices in partitions.items():
+        y_partition = y[indices]
+        conditional_entropy += (len(y_partition) / len(y)) * entropy(y_partition)
+
+    return entropy_y - conditional_entropy
     raise Exception('Function not yet implemented!')
 
 
@@ -115,9 +131,50 @@ def id3(x, y, attribute_value_pairs=None, depth=0, max_depth=5, weights=None):
     """
 
     # INSERT YOUR CODE HERE. NOTE: THIS IS A RECURSIVE FUNCTION.
+    if attribute_value_pairs is None:
+        attribute_value_pairs = []
+        for i in range(x.shape[1]):
+            unique_values = np.unique(x[:, i])
+            for value in unique_values:
+                attribute_value_pairs.append((i, value))
+
+    unique_labels = np.unique(y)
+    if len(unique_labels) == 1:
+        return unique_labels[0]
+    if len(attribute_value_pairs) == 0 or depth == max_depth:
+        return np.bincount(y).argmax()
+
+    max_info_gain = -1
+    best_pair = None
+    for pair in attribute_value_pairs:
+        info_gain = mutual_information(x[:, pair[0]], y)
+        if info_gain > max_info_gain:
+            max_info_gain = info_gain
+            best_pair = pair
+
+    if max_info_gain == 0:
+        return np.bincount(y).argmax()
+
+    partitions = partition(x[:, best_pair[0]])
+    remaining_pairs = [pair for pair in attribute_value_pairs if pair != best_pair]
+
+    tree = {}
+    for value, indices in partitions.items():
+        x_subset = x[indices]
+        y_subset = y[indices]
+        if len(y_subset) == 0:
+            tree[(best_pair[0], best_pair[1], value == best_pair[1])] = np.bincount(y).argmax()
+        else:
+            tree[(best_pair[0], best_pair[1], value == best_pair[1])] = id3(x_subset, y_subset, remaining_pairs, depth + 1, max_depth)
+
+    return tree
     raise Exception('Function not yet implemented!')
 
 def bootstrap_sampler(x, y, num_samples):
+    sample_mean = []
+    for i in range (num_samples):
+        sample = np.random.choice(len(x), size=len(x), replace=True)
+        sample_mean.append((x[sample], y[sample]))
     raise Exception('Function not yet implemented!')
 
 
@@ -125,6 +182,19 @@ def bagging(x, y, max_depth, num_trees):
     """
     Implements bagging of multiple id3 trees where each tree trains on a boostrap sample of the original dataset
     """
+    def bagging(x, y, max_depth, num_trees):
+        ensemble = []
+    for _ in range(num_trees):
+        # Bootstrap sample
+        indices = np.random.choice(len(x), size=len(x), replace=True)
+        x_sample = x[indices]
+        y_sample = y[indices]
+        
+        # Train a tree
+        tree = id3(x_sample, y_sample, max_depth=max_depth)
+        ensemble.append(tree)
+    return ensemble
+
     raise Exception('Bagging not yet implemented!')
 
 def boosting(x, y, max_depth, num_stumps):
@@ -132,6 +202,29 @@ def boosting(x, y, max_depth, num_stumps):
     """
     Implements an adaboost algorithm using the id3 algorithm as a base decision tree
     """
+    n = x.shape[0]
+    weights = np.ones(n) / n
+    ensemble = []  # Store (alpha_t, h_t) pairs
+
+    for t in range(num_stumps):
+        stump = id3(x, y, max_depth=max_depth, weights=weights)
+        
+        y_pred = np.array([predict_example(x_i, stump) for x_i in x])
+        
+        incorrect = (y_pred != y).astype(int)
+        error = np.sum(weights * incorrect)
+
+        error = np.clip(error, 1e-10, 1 - 1e-10)
+
+        alpha = 0.5 * np.log((1 - error) / error)
+
+        weights *= np.exp(-alpha * y * y_pred)
+
+        weights /= np.sum(weights)
+
+        ensemble.append((alpha, stump))
+
+    return ensemble
     raise Exception('Boosting not yet implemented!')
 
 
@@ -142,6 +235,18 @@ def predict_example_ens(x, h_ens):
     """
 
     # INSERT YOUR CODE HERE. NOTE: THIS IS A RECURSIVE FUNCTION.
+    total = 0
+    for alpha, tree in h_ens:
+        node = tree
+        # Traverse the tree manually
+        while isinstance(node, dict):
+            for (attr_index, attr_value, is_equal), subtree in node.items():
+                if (x[attr_index] == attr_value) == is_equal:
+                    node = subtree
+                    break
+        # Add weighted vote from final prediction
+        total += alpha * node
+    return 1 if total >= 0 else -1
     raise Exception('Function not yet implemented!')
 
 
@@ -153,6 +258,7 @@ def compute_error(y_true, y_pred):
     """
 
     # INSERT YOUR CODE HERE
+    return np.mean(y_true != y_pred)
     raise Exception('Function not yet implemented!')
 
 
