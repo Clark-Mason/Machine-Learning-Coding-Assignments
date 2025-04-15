@@ -225,7 +225,7 @@ def boosting(x, y, max_depth, num_stumps):
     for t in range(num_stumps):
         stump = id3(x, y, max_depth=max_depth, weights=weights)
         
-        y_pred = np.array([predict_example_ens(x_i, ensemble) for x_i in x])
+        y_pred = np.array([predict_example_ens(x_i, [(1.0, stump)]) for x_i in x])
         y_pred_mapped = np.where(y_pred == 1, 1, -1)
 
         incorrect = (y_pred != y).astype(int)
@@ -315,18 +315,18 @@ if __name__ == '__main__':
     Xtst = M[:, 1:]
 
     #BAGGING
-    for max_depth in [3, 5]:
-        for num_trees in [10, 20]:
-            # Train ensemble using bagging
-            ensemble = bagging(Xtrn, ytrn, max_depth=max_depth, num_trees=num_trees)
-            # Obtain predictions by aggregating weighted votes over the ensemble
-            predictions = [predict_example_ens(x, ensemble) for x in Xtst]
-            cm = confusion_matrix(ytst, predictions)
-            error_rate = zero_one_loss(ytst, predictions)
-            print(error_rate*100)
-            print("Bagging (Our Implementation) | max_depth = {}, num_trees = {}:".format(max_depth, num_trees))
-            print(cm)
-            print()
+    # for max_depth in [3, 5]:
+    #     for num_trees in [10, 20]:
+    #         # Train ensemble using bagging
+    #         ensemble = bagging(Xtrn, ytrn, max_depth=max_depth, num_trees=num_trees)
+    #         # Obtain predictions by aggregating weighted votes over the ensemble
+    #         predictions = [predict_example_ens(x, ensemble) for x in Xtst]
+    #         cm = confusion_matrix(ytst, predictions)
+    #         error_rate = zero_one_loss(ytst, predictions)
+    #         print(error_rate*100)
+    #         # print("Bagging (Our Implementation) | max_depth = {}, num_trees = {}:".format(max_depth, num_trees))
+    #         # print(cm)
+    #         print()
 
     #BOOSTING
     for max_depth in [1, 2]:
@@ -338,24 +338,24 @@ if __name__ == '__main__':
             cm = confusion_matrix(ytst, predictions)
             error_rate = zero_one_loss(ytst, predictions)
             print(error_rate*100)
-            print("Boosting (Our Implementation) | max_depth = {}, num_stumps = {}:".format(max_depth, num_stumps))
+            # print("Boosting (Our Implementation) | max_depth = {}, num_stumps = {}:".format(max_depth, num_stumps))
             print(cm)
             print()
 
     #BAGGING via SCIKIT-LEARN
-    for max_depth in [3, 5]:
-        for n_estimators in [10, 20]:
-            base_estimator = DecisionTreeClassifier(max_depth=max_depth, random_state=42)
-            clf = BaggingClassifier(estimator=base_estimator, n_estimators=n_estimators,
-                                    bootstrap=True, random_state=42)
-            clf.fit(Xtrn, ytrn)
-            predictions = clf.predict(Xtst)
-            cm = confusion_matrix(ytst, predictions)
-            error_rate = zero_one_loss(ytst, predictions)
-            print(error_rate*100)
-            print("scikit-learn Bagging | max_depth = {}, n_estimators = {}:".format(max_depth, n_estimators))
-            print(cm)
-            print()
+    # for max_depth in [3, 5]:
+    #     for n_estimators in [10, 20]:
+    #         base_estimator = DecisionTreeClassifier(max_depth=max_depth, random_state=42)
+    #         clf = BaggingClassifier(estimator=base_estimator, n_estimators=n_estimators,
+    #                                 bootstrap=True, random_state=42)
+    #         clf.fit(Xtrn, ytrn)
+    #         predictions = clf.predict(Xtst)
+    #         cm = confusion_matrix(ytst, predictions)
+    #         error_rate = zero_one_loss(ytst, predictions)
+    #         print(error_rate*100)
+    #         # print("scikit-learn Bagging | max_depth = {}, n_estimators = {}:".format(max_depth, n_estimators))
+    #         # print(cm)
+    #         print()
     
     #BOOSTING via SCIKIT-LEARN
     for max_depth in [1, 2]:
@@ -367,6 +367,6 @@ if __name__ == '__main__':
             cm = confusion_matrix(ytst, predictions)
             error_rate = zero_one_loss(ytst, predictions)
             print(error_rate*100)
-            print("scikit-learn AdaBoost | max_depth = {}, n_estimators = {}:".format(max_depth, n_estimators))
+            # print("scikit-learn AdaBoost | max_depth = {}, n_estimators = {}:".format(max_depth, n_estimators))
             print(cm)
             print()
