@@ -128,7 +128,7 @@ def id3(x, y, attribute_value_pairs=None, depth=0, max_depth=5, weights=None):
     """
 
     # INSERT YOUR CODE HERE. NOTE: THIS IS A RECURSIVE FUNCTION.
-       if attribute_value_pairs is None:
+    if attribute_value_pairs is None:
         attribute_value_pairs = []
         for i in range(x.shape[1]):
             for value in np.unique(x[:, i]):
