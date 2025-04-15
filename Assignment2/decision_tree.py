@@ -26,220 +26,201 @@
 # the package scikit-learn OR ANY OTHER machine learning package in THIS file.
 
 import numpy as np
-
+import matplotlib.pyplot as plt
+from sklearn.tree import DecisionTreeClassifier, export_graphviz
+import graphviz
+from sklearn.datasets import load_iris
+from sklearn.model_selection import train_test_split
 
 def partition(x):
-    """
-    Partition the column vector x into subsets indexed by its unique values (v1, ... vk)
-
-    Returns a dictionary of the form
-    { v1: indices of x == v1,
-      v2: indices of x == v2,
-      ...
-      vk: indices of x == vk }, where [v1, ... vk] are all the unique values in the vector z.
-    """
-
-    # INSERT YOUR CODE HERE
-    unique_num_features = np.unique(x)  # Number of unique features
-    partitions = {v: np.where(x == v)[0] for v in unique_num_features}  # Dictionary to store partitions for each feature value pair
+    unique_values = np.unique(x)
+    partitions = {v: np.where(x == v)[0] for v in unique_values}
     return partitions
 
-
-    raise Exception('Function not yet implemented!')
-
-
 def entropy(y):
-    """
-    Compute the entropy of a vector y by considering the counts of the unique values (v1, ... vk), in z
-
-    Returns the entropy of z: H(z) = p(z=v1) log2(p(z=v1)) + ... + p(z=vk) log2(p(z=vk))
-    """
-
-    # INSERT YOUR CODE HERE
     unique_values, counts = np.unique(y, return_counts=True)
     probabilities = counts / len(y)
     return -np.sum(probabilities * np.log2(probabilities))
-    raise Exception('Function not yet implemented!')
 
-
-def mutual_information(x, y):
-    """
-    Compute the mutual information between a data column (x) and the labels (y). The data column is a single attribute
-    over all the examples (n x 1). Mutual information is the difference between the entropy BEFORE the split set, and
-    the weighted-average entropy of EACH possible split.
-
-    Returns the mutual information: I(x, y) = H(y) - H(y | x)
-    """
-
-    # INSERT YOUR CODE HERE
-    entropy_y = entropy(y)
-    partitions = partition(x)
-    conditional_entropy = 0.0
-
-    for value, indices in partitions.items():
-        y_partition = y[indices]
-        conditional_entropy += (len(y_partition) / len(y)) * entropy(y_partition)
-
-    return entropy_y - conditional_entropy
-    raise Exception('Function not yet implemented!')
-
+def binary_information_gain(x, y):
+    n = len(x)
+    p_true = np.sum(x) / n
+    p_false = 1 - p_true
+    H_y = entropy(y)
+    H_true = entropy(y[x]) if np.sum(x) > 0 else 0
+    H_false = entropy(y[~x]) if np.sum(~x) > 0 else 0
+    return H_y - (p_true * H_true + p_false * H_false)
 
 def id3(x, y, attribute_value_pairs=None, depth=0, max_depth=5):
-    """
-    Implements the classical ID3 algorithm given training data (x), training labels (y) and an array of
-    attribute-value pairs to consider. This is a recursive algorithm that depends on three termination conditions
-        1. If the entire set of labels (y) is pure (all y = only 0 or only 1), then return that label
-        2. If the set of attribute-value pairs is empty (there is nothing to split on), then return the most common
-           value of y (majority label)
-        3. If the max_depth is reached (pre-pruning bias), then return the most common value of y (majority label)
-    Otherwise the algorithm selects the next best attribute-value pair using INFORMATION GAIN as the splitting criterion
-    and partitions the data set based on the values of that attribute before the next recursive call to ID3.
-
-    The tree we learn is a BINARY tree, which means that every node has only two branches. The splitting criterion has
-    to be chosen from among all possible attribute-value pairs. That is, for a problem with two features/attributes x1
-    (taking values a, b, c) and x2 (taking values d, e), the initial attribute value pair list is a list of all pairs of
-    attributes with their corresponding values:
-    [(x1, a),
-     (x1, b),
-     (x1, c),
-     (x2, d),
-     (x2, e)]
-     If we select (x2, d) as the best attribute-value pair, then the new decision node becomes: [ (x2 == d)? ] and
-     the attribute-value pair (x2, d) is removed from the list of attribute_value_pairs.
-
-    The tree is stored as a nested dictionary, where each entry is of the form
-                    (attribute_index, attribute_value, True/False): subtree
-    * The (attribute_index, attribute_value) determines the splitting criterion of the current node. For example, (4, 2)
-    indicates that we test if (x4 == 2) at the current node.
-    * The subtree itself can be nested dictionary, or a single label (leaf node).
-    * Leaf nodes are (majority) class labels
-
-    Returns a decision tree represented as a nested dictionary, for example
-    {(4, 1, False):
-        {(0, 1, False):
-            {(1, 1, False): 1,
-             (1, 1, True): 0},
-         (0, 1, True):
-            {(1, 1, False): 0,
-             (1, 1, True): 1}},
-     (4, 1, True): 1}
-    """
-
-    # INSERT YOUR CODE HERE. NOTE: THIS IS A RECURSIVE FUNCTION.
     if attribute_value_pairs is None:
         attribute_value_pairs = []
         for i in range(x.shape[1]):
-            unique_values = np.unique(x[:, i])
-            for value in unique_values:
+            for value in np.unique(x[:, i]):
                 attribute_value_pairs.append((i, value))
-
+                
     unique_labels = np.unique(y)
     if len(unique_labels) == 1:
         return unique_labels[0]
     if len(attribute_value_pairs) == 0 or depth == max_depth:
         return np.bincount(y).argmax()
-
-    max_info_gain = -1
+    
+    max_info_gain = -np.inf
     best_pair = None
     for pair in attribute_value_pairs:
-        info_gain = mutual_information(x[:, pair[0]], y)
+        feature_index, candidate_value = pair
+        condition = (x[:, feature_index] == candidate_value)
+        info_gain = binary_information_gain(condition, y)
         if info_gain > max_info_gain:
             max_info_gain = info_gain
             best_pair = pair
 
-    if max_info_gain == 0:
+    if max_info_gain <= 0:
         return np.bincount(y).argmax()
-
-    partitions = partition(x[:, best_pair[0]])
+    
     remaining_pairs = [pair for pair in attribute_value_pairs if pair != best_pair]
+    feature_index, candidate_value = best_pair
+
+    condition = (x[:, feature_index] == candidate_value)
+    true_indices = np.where(condition)[0]
+    false_indices = np.where(~condition)[0]
 
     tree = {}
-    for value, indices in partitions.items():
-        x_subset = x[indices]
-        y_subset = y[indices]
-        if len(y_subset) == 0:
-            tree[(best_pair[0], best_pair[1], value == best_pair[1])] = np.bincount(y).argmax()
-        else:
-            tree[(best_pair[0], best_pair[1], value == best_pair[1])] = id3(x_subset, y_subset, remaining_pairs, depth + 1, max_depth)
-
+    if len(true_indices) == 0:
+        tree[(feature_index, candidate_value, True)] = np.bincount(y).argmax()
+    else:
+        tree[(feature_index, candidate_value, True)] = id3(x[true_indices], y[true_indices], remaining_pairs, depth+1, max_depth)
+    
+    if len(false_indices) == 0:
+        tree[(feature_index, candidate_value, False)] = np.bincount(y).argmax()
+    else:
+        tree[(feature_index, candidate_value, False)] = id3(x[false_indices], y[false_indices], remaining_pairs, depth+1, max_depth)
+    
     return tree
-    raise Exception('Function not yet implemented!')
-
 
 def predict_example(x, tree):
-    """
-    Predicts the classification label for a single example x using tree by recursively descending the tree until
-    a label/leaf node is reached.
-
-    Returns the predicted label of x according to tree
-    """
-
-    # INSERT YOUR CODE HERE. NOTE: THIS IS A RECURSIVE FUNCTION.
     for key, subtree in tree.items():
-        attribute_index, attribute_value, is_equal = key
-        if (x[attribute_index] == attribute_value) == is_equal:
+        feature_index, candidate_value, branch_condition = key
+        if (x[feature_index] == candidate_value) == branch_condition:
             if isinstance(subtree, dict):
                 return predict_example(x, subtree)
             else:
                 return subtree
     return None
-    raise Exception('Function not yet implemented!')
-
 
 def compute_error(y_true, y_pred):
-    """
-    Computes the average error between the true labels (y_true) and the predicted labels (y_pred)
-
-    Returns the error = (1/n) * sum(y_true != y_pred)
-    """
-
-    # INSERT YOUR CODE HERE
     return np.mean(y_true != y_pred)
-    raise Exception('Function not yet implemented!')
-
 
 def visualize(tree, depth=0):
-    """
-    Pretty prints (kinda ugly, but hey, it's better than nothing) the decision tree to the console. Use print(tree) to
-    print the raw nested dictionary representation.
-    DO NOT MODIFY THIS FUNCTION!
-    """
-
     if depth == 0:
         print('TREE')
-
     for index, split_criterion in enumerate(tree):
         sub_trees = tree[split_criterion]
-
-        # Print the current node: split criterion
         print('|\t' * depth, end='')
         print('+-- [SPLIT: x{0} = {1}]'.format(split_criterion[0], split_criterion[1]))
-
-        # Print the children
-        if type(sub_trees) is dict:
+        if isinstance(sub_trees, dict):
             visualize(sub_trees, depth + 1)
         else:
             print('|\t' * (depth + 1), end='')
             print('+-- [LABEL = {0}]'.format(sub_trees))
 
+def confusion_matrix(y_true, y_pred):
+    y_pred = np.array(y_pred)
+    tp = np.sum((y_true == 1) & (y_pred == 1))
+    fp = np.sum((y_true == 0) & (y_pred == 1))
+    fn = np.sum((y_true == 1) & (y_pred == 0))
+    tn = np.sum((y_true == 0) & (y_pred == 0))
+    return np.array([[tp, fp], [fn, tn]])
+
+def print_predictions(X, y, tree):
+    """
+    For each example in X, print its features, true label from y, and the predicted label.
+    
+    Parameters:
+    - X: numpy array of features (each row is an example)
+    - y: numpy array of true labels corresponding to the rows in X
+    - tree: decision tree produced by the id3 function
+    """
+    for i in range(len(X)):
+        predicted = predict_example(X[i], tree)
+        print(f"Row {i} Features: {X[i]}  |  True Label: {y[i]}  |  Predicted: {predicted}")
 
 if __name__ == '__main__':
-    # Load the training data
-    M = np.genfromtxt('./monks-1.train', missing_values=0, skip_header=0, delimiter=',', dtype=int)
-    ytrn = M[:, 0]
-    Xtrn = M[:, 1:]
+    # Load MONK's problems data
+    monk_problems = ['monks-1', 'monks-2', 'monks-3']
+    depths = range(1, 11)
+    for problem in monk_problems: #FOR ALL # MONKS
+        train_file = f'./data/{problem}.train'
+        test_file = f'./data/{problem}.test'
+        M_train = np.genfromtxt(train_file, missing_values=0, skip_header=0, delimiter=',', dtype=int)
+        y_train = M_train[:, 0]
+        X_train = M_train[:, 1:]
+        M_test = np.genfromtxt(test_file, missing_values=0, skip_header=0, delimiter=',', dtype=int)
+        y_test = M_test[:, 0]
+        X_test = M_test[:, 1:]
+        train_errors = []
+        test_errors = []
+        for depth in depths: #FOR ALL DEPTHS 1-10
+            decision_tree = id3(X_train, y_train, max_depth=depth)
+            y_train_pred = [predict_example(x, decision_tree) for x in X_train]
+            train_err = compute_error(y_train, y_train_pred)
+            train_errors.append(train_err)
+            y_test_pred = [predict_example(x, decision_tree) for x in X_test]
+            test_err = compute_error(y_test, y_test_pred)
+            test_errors.append(test_err)
+        plt.figure()
+        plt.plot(depths, train_errors, label='Training Error')
+        plt.plot(depths, test_errors, label='Test Error')
+        plt.xlabel('Tree Depth')
+        plt.ylabel('Error')
+        plt.title(f'Learning Curves for {problem}')
+        plt.legend()
+        plt.show()
 
-    # Load the test data
-    M = np.genfromtxt('./monks-1.test', missing_values=0, skip_header=0, delimiter=',', dtype=int)
-    ytst = M[:, 0]
-    Xtst = M[:, 1:]
+    # Weak Learners for monks-1
+    M_train = np.genfromtxt('./data/monks-1.train', missing_values=0, skip_header=0, delimiter=',', dtype=int)
+    y_train = M_train[:, 0]
+    X_train = M_train[:, 1:]
+    M_test = np.genfromtxt('./data/monks-1.test', missing_values=0, skip_header=0, delimiter=',', dtype=int)
+    y_test = M_test[:, 0]
+    X_test = M_test[:, 1:]
+    decision_tree_depth1 = id3(X_train, y_train, max_depth=1)
+    visualize(decision_tree_depth1)
+    y_pred_depth1 = [predict_example(x, decision_tree_depth1) for x in X_test]
+    conf_matrix_depth1 = confusion_matrix(y_test, y_pred_depth1)
+    print("Confusion Matrix for depth=1:")
+    print(conf_matrix_depth1)
+    decision_tree_depth2 = id3(X_train, y_train, max_depth=2)
+    visualize(decision_tree_depth2)
+    y_pred_depth2 = [predict_example(x, decision_tree_depth2) for x in X_test]
+    conf_matrix_depth2 = confusion_matrix(y_test, y_pred_depth2)
+    print("Confusion Matrix for depth=2:")
+    print(conf_matrix_depth2)
 
-    # Learn a decision tree of depth 3
-    decision_tree = id3(Xtrn, ytrn, max_depth=3)
-    visualize(decision_tree)
+    # scikit-learn for monks-1
+    clf = DecisionTreeClassifier()
+    clf.fit(X_train, y_train)
+    dot_data = export_graphviz(clf, out_file=None, feature_names=[f'x{i}' for i in range(1, 7)], class_names=['0', '1'], filled=True)
+    graph = graphviz.Source(dot_data)
+    graph.render(f'monks-1_sklearn_tree')
+    graph.view()
+    y_pred_sklearn = clf.predict(X_test)
+    conf_matrix_sklearn = confusion_matrix(y_test, y_pred_sklearn)
+    print("Confusion Matrix for scikit-learn tree:")
+    print(conf_matrix_sklearn)
 
-    # Compute the test error
-    y_pred = [predict_example(x, decision_tree) for x in Xtst]
-    tst_err = compute_error(ytst, y_pred)
-
-    print('Test Error = {0:4.2f}%.'.format(tst_err * 100))
+    # Iris dataset example
+    iris = load_iris()
+    X = iris.data
+    y = iris.target
+    X_binary = (X > X.mean(axis=0)).astype(int)
+    X_train, X_test, y_train, y_test = train_test_split(X_binary, y, test_size=0.3, random_state=42)
+    clf_iris = DecisionTreeClassifier()
+    clf_iris.fit(X_train, y_train)
+    dot_data_iris = export_graphviz(clf_iris, out_file=None, feature_names=iris.feature_names, class_names=iris.target_names, filled=True)
+    graph_iris = graphviz.Source(dot_data_iris)
+    graph_iris.render(f'iris_sklearn_tree')
+    graph_iris.view()
+    y_pred_iris = clf_iris.predict(X_test)
+    conf_matrix_iris = confusion_matrix(y_test, y_pred_iris)
+    print("Confusion Matrix for Iris dataset:")
+    print(conf_matrix_iris)
